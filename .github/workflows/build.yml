@@ -1,0 +1,33 @@
+name: Build Meow Client
+on:
+  push:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "9.2.0"
+      - name: Unpack MeowClient.yml
+        run: |
+          pip install pyyaml
+          python3 - <<'PY'
+          import yaml, os
+          data = yaml.safe_load(open("MeowClient.yml", encoding="utf-8"))
+          for path, content in data["files"].items():
+              full = os.path.join("proj", path)
+              os.makedirs(os.path.dirname(full), exist_ok=True)
+              open(full, "w", encoding="utf-8").write(content)
+          PY
+      - name: Build
+        run: cd proj && gradle build --no-daemon
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MeowClient-jar
+          path: proj/build/libs/*.jar
